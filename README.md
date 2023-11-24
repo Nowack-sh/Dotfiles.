@@ -6,7 +6,8 @@ These dotfiles contains:
 + neofetch (optionnal since jfetch is better)
 + polybar (sudo apt install polybar)
 + .Xresources (containing URxvt config)
-+ .zshrc (optionnal)
++ .zshrc (sudo apt install zsh)
++ dunst (sudo apt install dunst) for notifications
 ## Requirements:
 + Polybar:
 zscroll
