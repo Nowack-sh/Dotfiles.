@@ -9,5 +9,5 @@ These dotfiles contains:
 + .zshrc (optionnal)
 ## Requirements:
 + Polybar:
-- zscroll
-- playerctl
+-zscroll
+-playerctl
