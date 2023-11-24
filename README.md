@@ -1,4 +1,4 @@
-## Dotfiles.
+# Dotfiles.
 Current dotfiles (24/11/2023)
 These dotfiles contains:
 + i3 config (sudo apt install i3) 4.22 minimum
