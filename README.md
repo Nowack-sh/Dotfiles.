@@ -7,7 +7,7 @@ These dotfiles contains:
 + polybar (sudo apt install polybar)
 + .Xresources (containing URxvt config)
 + .zshrc (optionnal)
-# Requirements:
-## Polybar:
-+ zscroll
-+ playerctl
+## Requirements:
++ Polybar:
+- zscroll
+- playerctl
