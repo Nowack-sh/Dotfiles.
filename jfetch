@@ -1,0 +1,158 @@
+#!/bin/sh
+## read system info
+
+## hostname
+read -r host < /proc/sys/kernel/hostname
+
+## os (distro)
+read -r kernel < /proc/sys/kernel/osrelease
+. /etc/os-release
+
+## define eq for ram (do not modify this)
+eq() {  
+	case $1 in
+		$2) ;;
+		*) return 1;;
+	esac
+}
+
+ ## wm 
+  [ ! "$wm" ] && [ "$DISPLAY" ] && command -v xprop >/dev/null && {
+    id=$(xprop -root -notype _NET_SUPPORTING_WM_CHECK)
+    id=${id##* }
+    wm=$(xprop -id "$id" -notype -len 100 -f _NET_WM_NAME 8t |
+      grep '^_NET_WM_NAME' | cut -d\" -f 2)
+  }
+
+## kernel	
+	read -r _ _ version _ < /proc/version
+	ke=${version%%-*}
+
+## optionals
+
+## terminal
+while [ ! "$term" ]; do
+		while read -r line; do
+			eq "$line" 'PPid*' && ppid=${line##*:?} && break
+		done < "/proc/${ppid:-$PPID}/status"
+
+		[ "$pppid" = "$ppid" ] && break
+		pppid=$ppid
+
+		read -r name < "/proc/$ppid/comm"
+
+		case $name in
+			*sh|"${0##*/}") ;;  
+			*[Ll]ogin*|*init*|*systemd*) break;;
+			*) term=$name
+		esac
+	done
+	
+## package manager
+manager=$(which nix-env yum dnf rpm apt brew port zypper pacman xbps-query pkg emerge cave apk kiss brl yay cpm eopkg 2>/dev/null)
+manager=${manager##*/}
+
+## packages detection 
+case $manager in
+	cpm) packages="$(cpm C)";;
+	brew) packages="$(brew list --formula | wc -l)";;
+	port) packages=$(port installed | tot);;
+	apt) packages="$(dpkg-query -f '${binary:Package}\n' -W | wc -l)";;
+	rpm) packages="$(rpm -qa --last| wc -l)";;
+	yum) packages="$(yum list installed | wc -l)";;
+	dnf) packages="$(dnf list installed | wc -l)";;
+	zypper) packages="$(zypper se | wc -l)";;
+	pacman) packages="$(pacman -Q | wc -l)";;
+	yay) packages="$(yay -Q | wc -l)";;
+	kiss) packages="$(kiss list | wc -l)";;
+	pkg|emerge) packages="$(qlist -I | wc -l)";;
+	cave) packages="$(cave show installed-slots | wc -l)";;
+	xbps-query) packages="$(xbps-query -l | wc -l)";;
+	nix-env) packages="$(nix-store -q --requisites /run/current-system/sw | wc -l)";;
+	apk) packages="$(apk list --installed | wc -l)";;
+	brl) packages="$(brl list | wc -l)";;
+	eopkg) packages="$(eopkg li | wc -l)";;
+	*) packages="idk"
+esac 
+
+## display protocol
+  [ "$DISPLAY" ] && displayprot="x11"
+  [ "$WAYLAND_DISPLAY" ] && displayprot="wayland"
+  [ ! "$displayprot" ] && displayprot="tty"
+  
+## resolution
+unset i resolution
+
+  command -v xrandr >/dev/null && {
+    for i in $(xrandr --current | grep ' connected' | grep -o '[0-9]\+x[0-9]\+'); do
+      resolution="$resolution$i, "
+    done
+    resolution=${resolution%, }
+  }
+
+## cpu  
+while read -r line; do
+		case $line in
+			vendor_id*) vendor="${line##*: } ";;
+			model\ name*) cpu=${line##*: }; break;;
+		esac
+	done < /proc/cpuinfo
+	
+vendor=${vendor##*Authentic}
+vendor=${vendor##*Genuine}
+cpu=${cpu##*) }
+cpu=${cpu%% @*}
+cpu=${cpu%% CPU}
+cpu=${cpu##CPU }
+cpu=${cpu##*AMD }
+cpu=${cpu%% with*}
+cpu=${cpu% *-Core*}	
+  
+## ram
+while read -r line; do
+		eq "$line" 'MemTotal*' && set -- $line && break
+	done < /proc/meminfo
+	mem="$(( $2 / 1000 ))MB"
+	
+## uptime
+IFS=. read -r uptime _ < /proc/uptime
+	d=$((uptime / 60 / 60 / 24))
+	up=$(printf %02d:%02d $((uptime / 60 / 60 % 24)) $((uptime / 60 % 60)))
+	[ "$d" -gt 0 ] && up="${d}d $up"
+
+## model	
+read -r model < /sys/devices/virtual/dmi/id/product_name
+	
+
+## optionals ends here
+
+## colors and palette method 
+c0='[0m';
+c1='[31m'; c2='[32m'
+c3='[33m'; c4='[34m'
+c5='[35m'; c6='[36m'
+c7='[37m'; c8='[38m'
+palette="[7m$c1 $c1 $c2 $c2 $c3 $c3 $c4 $c4 $c5 $c5 $c6 $c6 [m"
+
+# ascii 
+ARTR1="${c5}     .-.         "
+ARTR2="${c5}  __/   (        "
+ARTR3="${c5}, '-.____\\       "
+ARTR4="${c5} u=='/  \\        "
+ARTR5="${c5}    /_/  \\       "
+ARTR6="${c5}  .-''   |"
+ARTR7="${c5} (  ${c5}____${c5}/${c5}_____   "
+
+# output
+cat <<-EOF
+
+    ${ARTR1}${USER}${c0}@${c5}${host}
+    ${ARTR2}${c6}os${c0} ~ ${PRETTY_NAME}
+    ${ARTR3}${c6}sh${c0} ~ ${SHELL##*/}
+    ${ARTR4}${c6}wm${c0} ~ ${wm}
+    ${ARTR5}${c6}kr${c0} ~ ${ke}
+    ${ARTR6}
+    ${ARTR7}${palette}
+    
+    
+EOF
